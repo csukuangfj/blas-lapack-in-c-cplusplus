@@ -12,14 +12,51 @@
   You should have received a COPYING file of the GNU General Public License
   along with this program. If not, see <http://www.gnu.org/licenses/>
   -----------------------------------------------------------------  */
-#include <stdio.h>
 
 #include <cassert>
+#include <iostream>
+#include <vector>
 
+// cblas.h is from https://www.netlib.org/blas/cblas.h
 #include "cblas.h"
 
-namespace {
+#include "my_blas_implementation.h"
 
+void test_cblas_sscal() {
+  std::cout << "==========cblas_sscal==========" << std::endl;
+
+  std::vector<float> x = {0, 1, 2, 3};
+  std::vector<float> y = x;
+
+  float alpha = 10;
+
+  // case 1: incx is 1
+  // scale every element of x by 10
+  cblas_sscal(4, alpha, x.data(), 1);
+  kk::level1::sscal(4, alpha, y.data(), 1);
+  assert(x == y);
+
+  assert(x[0] == 0);   // 0 * 10
+  assert(x[1] == 10);  // 1 * 10
+  assert(x[2] == 20);  // 2 * 10
+  assert(x[3] == 30);  // 3 * 10
+
+  // case 2: incx is 2
+  // scale every second element of x by 100
+  alpha = 100;
+  cblas_sscal(2, alpha, x.data(), 2);
+  kk::level1::sscal(2, alpha, y.data(), 2);
+  assert(x == y);
+
+  assert(x[0] == 0);
+  assert(x[1] == 10);    // not changed
+  assert(x[2] == 2000);  // scaled by 100, 20*100
+  assert(x[3] == 30);    // not changed
+
+  std::cout << "==========cblas_sscal OK==========" << std::endl;
+}
+
+#if 0
 // Matrix Vector multiplication
 // y = alpha * A * x + beta * y
 // A may be transposed
@@ -39,27 +76,26 @@ void test_dgemv() {
 
   // y = alpha * A * x + beta * y
   cblas_dgemv(CblasRowMajor,
-              CblasNoTrans, // TransA no transpose for A
-              2,            // M, number of rows in A
-              3,            // N, number of columns in A
-              1.,           // alpha, 1, no scale
-              A,            // A
-              3,            // lda
-              x,            // x
-              1,            // incX
-              0.,           // beta
-              y,            // y
-              1             // incY
+              CblasNoTrans,  // TransA no transpose for A
+              2,             // M, number of rows in A
+              3,             // N, number of columns in A
+              1.,            // alpha, 1, no scale
+              A,             // A
+              3,             // lda
+              x,             // x
+              1,             // incX
+              0.,            // beta
+              y,             // y
+              1              // incY
   );
   assert(y[0] == 8);
   assert(y[1] == 20);
   printf("y[0] = %.2f\n", y[0]);
   printf("y[1] = %.2f\n", y[1]);
 }
-
-} // namespace
+#endif
 
 int main() {
-  test_dgemv();
+  test_cblas_sscal();
   return 0;
 }
