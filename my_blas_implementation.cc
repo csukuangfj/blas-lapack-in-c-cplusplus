@@ -15,14 +15,86 @@
 
 #include "my_blas_implementation.h"
 
+#include <math.h>
+
 namespace kk {
 namespace level1 {
+
+float sasum(const int N, const float *X, const int incX) {
+  float s = 0;
+  for (int i = 0; i < N; ++i) {
+    s += fabs(*X);
+    X += incX;
+  }
+  return s;
+}
+
+void saxpy(const int N, const float alpha, const float *X, const int incX,
+           float *Y, const int incY) {
+  for (int i = 0; i < N; ++i) {
+    *Y += *X * alpha;
+    X += incX;
+    Y += incY;
+  }
+}
+
+void scopy(const int N, const float *X, const int incX, float *Y,
+           const int incY) {
+  for (int i = 0; i < N; ++i) {
+    *Y = *X;
+    X += incX;
+    Y += incY;
+  }
+}
+
+float sdot(const int N, const float *X, const int incX, const float *Y,
+           const int incY) {
+  float p = 0;
+  for (int i = 0; i < N; ++i) {
+    p += (*X) * (*Y);
+    X += incX;
+    Y += incY;
+  }
+  return p;
+}
+
+float snrm2(const int N, const float *X, const int incX) {
+  float s = 0;
+  for (int i = 0; i < N; ++i) {
+    s += (*X) * (*X);
+    X += incX;
+  }
+  return sqrtf(s);
+}
 
 void sscal(const int N, const float alpha, float *X, const int incX) {
   for (int i = 0; i < N; ++i) {
     *X *= alpha;
     X += incX;
   }
+}
+
+void sswap(const int N, float *X, const int incX, float *Y, const int incY) {
+  for (int i = 0; i < N; ++i) {
+    float tmp = *X;
+    *X = *Y;
+    *Y = tmp;
+    X += incX;
+    Y += incY;
+  }
+}
+
+size_t isamax(const int N, const float *X, const int incX) {
+  size_t res = 0;
+  float max_val = fabsf(*X);
+  for (int i = 0; i < N; ++i) {
+    if (fabsf(*X) > max_val) {
+      res = i;  // is is the index of the element
+      max_val = fabsf(*X);
+    }
+    X += incX;
+  }
+  return res;
 }
 
 }  // namespace level1
