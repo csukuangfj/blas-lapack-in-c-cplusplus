@@ -2,6 +2,7 @@
 
 - [Introduction](#introduction)
 - [cblas.h](#cblas)
+- [MKL](#mkl)
 - [Documentation](#documentation)
 - [References](#references)
 
@@ -31,6 +32,11 @@ test_blas:
   /usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 120.1.0)
   /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1226.10.1)
 ```
+
+## MKL
+
+Refer to [./install-mkl.md][9] for installing MKL on macOS.
+
 
 ## Documentation
 
@@ -62,6 +68,7 @@ You can find the generated documentation [here][6].
 - [Routines for BLAS, LAPACK, MAGMA][7]
 - [Intel® Math Kernel Library Developer Reference][8]
 
+[9]: https://github.com/csukuangfj/blas-lapack-in-c-cplusplus/install-mkl.md
 [8]: https://software.intel.com/sites/default/files/mkl-2019-developer-reference-c_3.pdf
 [7]: http://www.icl.utk.edu/~mgates3/docs/lapack.html
 [6]: https://csukuangfj.github.io/doc/blas-lapack-in-c-cplusplus/index.html
