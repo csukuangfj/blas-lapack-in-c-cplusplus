@@ -60,7 +60,9 @@ You can find the generated documentation [here][6].
 - [Intel® Math Kernel Library (Intel® MKL) - BLAS, CBLAS and LAPACK Compiling/Linking Functions &Fortran and C/C++ Calls][1]
 - https://developer.apple.com/documentation/accelerate/blas?language=objc
 - [Routines for BLAS, LAPACK, MAGMA][7]
+- [Intel® Math Kernel Library Developer Reference][8]
 
+[8]: https://software.intel.com/sites/default/files/mkl-2019-developer-reference-c_3.pdf
 [7]: http://www.icl.utk.edu/~mgates3/docs/lapack.html
 [6]: https://csukuangfj.github.io/doc/blas-lapack-in-c-cplusplus/index.html
 [5]: https://github.com/csukuangfj/blas-lapack-in-c-cplusplus

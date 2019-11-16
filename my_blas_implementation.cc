@@ -84,8 +84,8 @@ void sswap(const int N, float *X, const int incX, float *Y, const int incY) {
   }
 }
 
-size_t isamax(const int N, const float *X, const int incX) {
-  size_t res = 0;
+CBLAS_INDEX isamax(const int N, const float *X, const int incX) {
+  CBLAS_INDEX res = 0;
   float max_val = fabsf(*X);
   for (int i = 0; i < N; ++i) {
     if (fabsf(*X) > max_val) {
@@ -98,4 +98,63 @@ size_t isamax(const int N, const float *X, const int incX) {
 }
 
 }  // namespace level1
+
+namespace level2 {
+
+void sgemv(const enum CBLAS_ORDER order, const enum CBLAS_TRANSPOSE TransA,
+           const int M, const int N, const float alpha, const float *A,
+           const int lda, const float *X, const int incX, const float beta,
+           float *Y, const int incY) {
+  if (TransA == CblasNoTrans) {
+    int num_rows = M;
+    int num_cols = N;
+    for (int r = 0; r < num_rows; ++r) {
+      float row_sum = 0;
+      for (int c = 0; c < num_cols; ++c) {
+        if (order == CblasRowMajor) {
+          // get the element of A at (r, c) for row major
+          float value = A[r * lda + c];
+          row_sum += value * X[c * incX];
+        } else {
+          // get the element of A at (r, c) for column major
+          float value = A[r + c * lda];
+          row_sum += value * X[c * incX];
+        }
+      }
+      *Y = alpha * row_sum + beta * (*Y);
+
+      // process the next row
+      Y += incY;
+    }
+  } else {
+    // we omit the case for CblasConjTrans
+    // A is M-rows, N-cols
+    // trans(A) is N-rows, M-cols
+    // we want to compute y = alpha * trans(A) * x + beta * y
+
+    int num_rows = N;
+    int num_cols = M;
+    for (int r = 0; r < num_rows; ++r) {
+      float row_sum = 0;
+      for (int c = 0; c < num_cols; ++c) {
+        float value;
+        if (order == CblasRowMajor) {
+          // get the element (r, c) of TransA, which is (c, r) of A
+          value = A[c * lda + r];
+        } else {
+          // for column major
+          // get the element (r, c) of TransA, which is (c, r) of A
+          value = A[c + r * lda];
+        }
+        row_sum += value * X[c * incX];
+      }
+      *Y = alpha * row_sum + beta * (*Y);
+
+      // process the next row
+      Y += incY;
+    }
+  }
+}
+}  // namespace level2
+
 }  // namespace kk

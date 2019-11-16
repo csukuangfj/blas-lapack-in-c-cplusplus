@@ -23,6 +23,14 @@
 
 #include "my_blas_implementation.h"
 
+std::ostream& operator<<(std::ostream& os, const std::vector<float>& v) {
+  for (auto i : v) {
+    os << i << " ";
+  }
+  os << "\n";
+  return os;
+}
+
 void test_cblas_sasum() {
   std::cout << "==========cblas_sasum==========" << std::endl;
   std::vector<float> x = {-1, -2, 3, 4};
@@ -162,6 +170,384 @@ void test_cblas_isamax() {
   std::cout << "==========cblas_isamax OK======" << std::endl;
 }
 
+void test_cblas_sgemv() {
+  std::cout << "==========cblas_segemv=========" << std::endl;
+  {
+    // case 1: no transpose, row major, contiguous
+    std::vector<float> m = {
+        // clang-format off
+    1, 2, -1,
+    0, 1, 1,
+        // clang-format on
+    };
+    std::vector<float> v = {
+        // clang-format off
+    1, 2, 3,
+        // clang-format on
+    };
+
+    std::vector<float> y1 = {10, 20};
+    std::vector<float> y2 = y1;
+    // y = 5 * m * x + 4 y
+    //
+    //     1  2 -1
+    // 5 * 0  1  1  *  [1, 2, 3]  + 4*[10, 20]
+    //
+    // = 5 * [2, 5] + 4 * [10, 20] = [10+40, 25+80] = [50, 105]
+    cblas_sgemv(CblasRowMajor,  // order, i.e., layout
+                CblasNoTrans,   // no trans
+                2,              // m, number of rows
+                3,              // n, number of columns
+                5,              // alpha
+                m.data(),       // matrix A
+                3,  // lda, row major, so lda is 3, i.e., number of columns
+                v.data(),   // x
+                1,          // incx
+                4,          // beta
+                y1.data(),  // y
+                1           // incy
+    );
+    kk::level2::sgemv(
+        CblasRowMajor,  // order, i.e., layout
+        CblasNoTrans,   // no trans
+        2,              // m, number of rows
+        3,              // n, number of columns
+        5,              // alpha
+        m.data(),       // matrix A
+        3,              // lda, row major, so lda is 3, i.e., number of columns
+        v.data(),       // x
+        1,              // incx
+        4,              // beta
+        y2.data(),      // y
+        1               // incy
+    );
+    assert(y1 == y2);
+    assert(y1[0] == 50);
+    assert(y1[1] == 105);
+  }
+  {
+    // case 2: no transpose, column major, contiguous
+    // 5 * 1 2 -1 *  1 2 -1  + 4 * [10, 20]
+    //     1 0  1
+    //
+    // = 5 * [6, 0] + 4 * [10, 20] = [30 + 40, 0 + 80] = [70, 80]
+    std::vector<float> m{1, 1, 2, 0, -1, 1};
+    std::vector<float> v{1, 2, -1};
+    std::vector<float> y1{10, 20};
+    std::vector<float> y2 = y1;
+    cblas_sgemv(CblasColMajor,  // order, i.e., layout
+                CblasNoTrans,   // no trans
+                2,              // m, number of rows
+                3,              // n, number of columns
+                5,              // alpha
+                m.data(),       // matrix A
+                2,  // lda, column major, so lda is 2, i.e., number of rows
+                v.data(),   // x
+                1,          // incx
+                4,          // beta
+                y1.data(),  // y
+                1           // incy
+    );
+    kk::level2::sgemv(
+        CblasColMajor,  // order, i.e., layout
+        CblasNoTrans,   // no trans
+        2,              // m, number of rows
+        3,              // n, number of columns
+        5,              // alpha
+        m.data(),       // matrix A
+        2,              // lda, column major, so lda is 2, i.e., number of rows
+        v.data(),       // x
+        1,              // incx
+        4,              // beta
+        y2.data(),      // y
+        1               // incy
+    );
+    assert(y1 == y2);
+    assert(y1[0] == 70);
+    assert(y1[1] == 80);
+  }
+  {
+    // case 3: no transpose, row major, non-contiguous
+    // 5 * 1 2 -1 0 0 0 0 0 *  1 2 -1  + 4 * [10, 20]
+    //     1 0  1 0 0 0 0 0
+    //
+    // = 5 * [6, 0] + 4 * [10, 20] = [30 + 40, 0 + 80] = [70, 80]
+    std::vector<float> m{1, 2, -1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0};
+    std::vector<float> v{1, 2, -1};
+    std::vector<float> y1{10, 20};
+    std::vector<float> y2 = y1;
+    cblas_sgemv(CblasRowMajor,  // order, i.e., layout
+                CblasNoTrans,   // no trans
+                2,              // m, number of rows
+                3,              // n, number of columns
+                5,              // alpha
+                m.data(),       // matrix A
+                8,  // lda, row major, so lda is 8, i.e., number of colunms +
+                    // padding = 3 + 5 = 8
+                v.data(),   // x
+                1,          // incx
+                4,          // beta
+                y1.data(),  // y
+                1           // incy
+    );
+    kk::level2::sgemv(CblasRowMajor,  // order, i.e., layout
+                      CblasNoTrans,   // no trans
+                      2,              // m, number of rows
+                      3,              // n, number of columns
+                      5,              // alpha
+                      m.data(),       // matrix A
+                      8,         // lda, row major, so lda is 8, i.e., number of
+                                 // colunms + padding = 3 + 5 = 8
+                      v.data(),  // x
+                      1,         // incx
+                      4,         // beta
+                      y2.data(),  // y
+                      1           // incy
+    );
+    assert(y1 == y2);
+    assert(y1[0] == 70);
+    assert(y1[1] == 80);
+  }
+  {
+    // case 4: no transpose, column major, non-contiguous
+    // 5 * 1 2 -1 *  1 2 -1  + 4 * [10, 20]
+    //     1 0  1
+    //     0 0  0
+    //     0 0  0
+    //
+    // = 5 * [6, 0] + 4 * [10, 20] = [30 + 40, 0 + 80] = [70, 80]
+    std::vector<float> m{1, 1, 0, 0, 2, 0, 0, 0, -1, 1, 0, 0};
+    std::vector<float> v{1, 2, -1};
+    std::vector<float> y1{10, 20};
+    std::vector<float> y2 = y1;
+    cblas_sgemv(CblasColMajor,  // order, i.e., layout
+                CblasNoTrans,   // no trans
+                2,              // m, number of rows
+                3,              // n, number of columns
+                5,              // alpha
+                m.data(),       // matrix A
+                4,  // lda, column major, so lda is 4, i.e., number of rows +
+                    // padding = 2 + 2 = 4
+                v.data(),   // x
+                1,          // incx
+                4,          // beta
+                y1.data(),  // y
+                1           // incy
+    );
+    kk::level2::sgemv(CblasColMajor,  // order, i.e., layout
+                      CblasNoTrans,   // no trans
+                      2,              // m, number of rows
+                      3,              // n, number of columns
+                      5,              // alpha
+                      m.data(),       // matrix A
+                      4,  // lda, column major, so lda is 4, i.e., number of
+                          // rows + padding = 2 + 2 = 4
+                      v.data(),   // x
+                      1,          // incx
+                      4,          // beta
+                      y2.data(),  // y
+                      1           // incy
+    );
+    assert(y1 == y2);
+    assert(y1[0] == 70);
+    assert(y1[1] == 80);
+  }
+  {
+    // case 5: transpose, row major, contiguous
+    // 5 * 1 2 -1 *  1 2 -1  + 4 * [10, 20]
+    //     1 0  1
+    //
+    // = 5 * [6, 0] + 4 * [10, 20] = [30 + 40, 0 + 80] = [70, 80]
+    //
+    // A is 1  1
+    //      2  0
+    //     -1  1
+    //
+    std::vector<float> m{1, 1, 2, 0, -1, 1};
+    std::vector<float> v{1, 2, -1};
+    std::vector<float> y1{10, 20};
+    std::vector<float> y2 = y1;
+    cblas_sgemv(CblasRowMajor,  // order, i.e., layout
+                CblasTrans,     // trans
+                3,              // m, number of rows
+                2,              // n, number of columns
+                5,              // alpha
+                m.data(),       // matrix A
+                2,  // lda, row major, so lda is 2, i.e., number of columns
+                v.data(),   // x
+                1,          // incx
+                4,          // beta
+                y1.data(),  // y
+                1           // incy
+    );
+    kk::level2::sgemv(
+        CblasRowMajor,  // order, i.e., layout
+        CblasTrans,     // trans
+        3,              // m, number of rows
+        2,              // n, number of columns
+        5,              // alpha
+        m.data(),       // matrix A
+        2,              // lda, row major, so lda is 2, i.e., number of columns
+        v.data(),       // x
+        1,              // incx
+        4,              // beta
+        y2.data(),      // y
+        1               // incy
+    );
+    assert(y1 == y2);
+    assert(y1[0] == 70);
+    assert(y1[1] == 80);
+  }
+  {
+    // case 6: transpose, column major, contiguous
+    // 5 * 1 2 -1 *  1 2 -1  + 4 * [10, 20]
+    //     1 0  1
+    //
+    // = 5 * [6, 0] + 4 * [10, 20] = [30 + 40, 0 + 80] = [70, 80]
+    //
+    // A is 1  1
+    //      2  0
+    //     -1  1
+    //
+    std::vector<float> m{1, 2, -1, 1, 0, 1};
+    std::vector<float> v{1, 2, -1};
+    std::vector<float> y1{10, 20};
+    std::vector<float> y2 = y1;
+    cblas_sgemv(CblasColMajor,  // order, i.e., layout
+                CblasTrans,     // trans
+                3,              // m, number of rows
+                2,              // n, number of columns
+                5,              // alpha
+                m.data(),       // matrix A
+                3,  // lda, column major, so lda is 3, i.e., number of rows
+                v.data(),   // x
+                1,          // incx
+                4,          // beta
+                y1.data(),  // y
+                1           // incy
+    );
+    kk::level2::sgemv(
+        CblasColMajor,  // order, i.e., layout
+        CblasTrans,     // trans
+        3,              // m, number of rows
+        2,              // n, number of columns
+        5,              // alpha
+        m.data(),       // matrix A
+        3,              // lda, column major, so lda is 3, i.e., number of rows
+        v.data(),       // x
+        1,              // incx
+        4,              // beta
+        y2.data(),      // y
+        1               // incy
+    );
+    assert(y1 == y2);
+    assert(y1[0] == 70);
+    assert(y1[1] == 80);
+  }
+  {
+    // case 7: transpose, row major, non-contiguous
+    // 5 * 1 2 -1 *  1 2 -1  + 4 * [10, 20]
+    //     1 0  1
+    //     0 0  0
+    //     0 0  0
+    //     0 0  0
+    //     0 0  0
+    //     0 0  0
+    //     0 0  0
+    //
+    // = 5 * [6, 0] + 4 * [10, 20] = [30 + 40, 0 + 80] = [70, 80]
+    //
+    // A is 1  1 0 0 0 0 0 0
+    //      2  0 0 0 0 0 0 0
+    //     -1  1 0 0 0 0 0 0
+    //
+    std::vector<float> m{1, 1, 0, 0, 0,  0, 0, 0, 2, 0, 0, 0,
+                         0, 0, 0, 0, -1, 1, 0, 0, 0, 0, 0, 0};
+    std::vector<float> v{1, 2, -1};
+    std::vector<float> y1{10, 20};
+    std::vector<float> y2 = y1;
+    cblas_sgemv(CblasRowMajor,  // order, i.e., layout
+                CblasTrans,     // trans
+                3,              // m, number of rows
+                2,              // n, number of columns
+                5,              // alpha
+                m.data(),       // matrix A
+                8,  // lda, row major, so lda is 8, i.e., number of columns +
+                    // padding=2+6
+                v.data(),   // x
+                1,          // incx
+                4,          // beta
+                y1.data(),  // y
+                1           // incy
+    );
+    kk::level2::sgemv(CblasRowMajor,  // order, i.e., layout
+                      CblasTrans,     // trans
+                      3,              // m, number of rows
+                      2,              // n, number of columns
+                      5,              // alpha
+                      m.data(),       // matrix A
+                      8,         // lda, row major, so lda is 8, i.e., number of
+                                 // columns + padding=2+6
+                      v.data(),  // x
+                      1,         // incx
+                      4,         // beta
+                      y2.data(),  // y
+                      1           // incy
+    );
+    assert(y1 == y2);
+    assert(y1[0] == 70);
+    assert(y1[1] == 80);
+  }
+  {
+    // case 8: transpose, column major, non-contiguous
+    // 5 * 1 2 -1 0 *  1 2 -1  + 4 * [10, 20]
+    //     1 0  1 0
+    //
+    // = 5 * [6, 0] + 4 * [10, 20] = [30 + 40, 0 + 80] = [70, 80]
+    //
+    // A is 1  1
+    //      2  0
+    //     -1  1
+    //      0  0
+    std::vector<float> m{1, 2, -1, 0, 1, 0, 1, 0};
+    std::vector<float> v{1, 2, -1};
+    std::vector<float> y1{10, 20};
+    std::vector<float> y2 = y1;
+    cblas_sgemv(CblasColMajor,  // order, i.e., layout
+                CblasTrans,     // trans
+                3,              // m, number of rows
+                2,              // n, number of columns
+                5,              // alpha
+                m.data(),       // matrix A
+                4,  // lda, column major, so lda is 8, i.e., number of rows +
+                    // padding=3+1=4
+                v.data(),   // x
+                1,          // incx
+                4,          // beta
+                y1.data(),  // y
+                1           // incy
+    );
+    kk::level2::sgemv(CblasColMajor,  // order, i.e., layout
+                      CblasTrans,     // trans
+                      3,              // m, number of rows
+                      2,              // n, number of columns
+                      5,              // alpha
+                      m.data(),       // matrix A
+                      4,  // lda, column major, so lda is 8, i.e., number of
+                          // rows + padding=3+1=4
+                      v.data(),   // x
+                      1,          // incx
+                      4,          // beta
+                      y2.data(),  // y
+                      1           // incy
+    );
+    assert(y1 == y2);
+    assert(y1[0] == 70);
+    assert(y1[1] == 80);
+  }
+  std::cout << "==========cblas_segemv OK======" << std::endl;
+}
+
 int main() {
   test_cblas_sasum();
   test_cblas_saxpy();
@@ -171,5 +557,6 @@ int main() {
   test_cblas_sscal();
   test_cblas_sswap();
   test_cblas_isamax();
+  test_cblas_sgemv();
   return 0;
 }

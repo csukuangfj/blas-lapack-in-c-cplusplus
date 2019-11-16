@@ -15,6 +15,8 @@
 
 #include <cstdint>
 
+#include "cblas.h"  // we need the enum types from cblas.h
+
 /**
  * @brief An naive implemenation for the blas interface
  */
@@ -182,8 +184,74 @@ void sswap(const int N, float *X, const int incX, float *Y, const int incY);
  *
  * @warning it should be CBLAS_INDEX, which is platform dependent macro
  */
-size_t isamax(const int N, const float *X, const int incX);
+CBLAS_INDEX isamax(const int N, const float *X, const int incX);
 
 /** @} */
 }  // namespace level1
+
+namespace level2 {
+/**
+ * @defgroup level2 Level 2 functions.
+ * @brief Level 2 functions in BLAS.
+ *
+ * GEMV
+ *
+ * @note `x` and `y` can be the same; that is, it can be an inplace operation.
+ *
+ * Refer to
+ * https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms#Level_1 for
+ * the classification of BLAS levels.
+ *
+ * @{
+ */
+
+/** @brief GEMV : y = alpha * A * x + beta * y
+ *
+ * A: M rows, N columns; M and N are independent of `TransA`.
+ *
+ * Assume A is contiguous.
+ *
+ * If order == CblasRowMajor,
+ * - lda == N, number of columns
+ * - when A is not contiguous, lda = N + column_padding
+ *
+ * If order == CblasColMajor,
+ * - lda == M, number of rows
+ * - when A is not contiguous, lda = M + row_padding
+ *
+ * @warning The need for lda. For the vector `X`, we need `incX`
+ * so that we know how to get the next element. For the matrix `A`,
+ * we have to known how to jump to the next row (if it is column major)
+ * or to the next column (if it is row major). Since `A` may not be contiguous
+ * in memory, we have to provide `lda`.
+ *
+ * @param order CblasRowMajor, CblasColMajor
+ * @param TransA CblasNoTrans, CblasTrans, CblasConjTrans
+ * @param M number of rows of A
+ * @param N number of cols of A
+ * @param alpha the scale for A*x
+ * @param A the matrix A
+ * @param lda leading dimension of a. If order is CblasRowMajor, then lda is the
+ * number of columns of A; if order is CblasColMajor, then lda is the number
+ * of rows of A.
+ * @param X the vector X, its lengths is N if TransA is CblasNoTrans;
+ * its lengths is M if TransA is CblasTrans
+ * @param incX the stride for the vector X
+ * @param beta the scale for beta * Y
+ * @param Y the vector Y of length M
+ * @param incY the stride for the vector Y
+ *
+ * Refer to
+ * - https://software.intel.com/en-us/onemkl-developer-reference-c-cblas-gemv
+ * - http://www.netlib.org/blas/sgemv.f
+ *
+ */
+void sgemv(const enum CBLAS_ORDER order, const enum CBLAS_TRANSPOSE TransA,
+           const int M, const int N, const float alpha, const float *A,
+           const int lda, const float *X, const int incX, const float beta,
+           float *Y, const int incY);
+
+/** @} */
+}  // namespace level2
+
 }  // namespace kk
